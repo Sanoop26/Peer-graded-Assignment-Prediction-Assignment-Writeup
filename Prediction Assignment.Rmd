@@ -1,0 +1,106 @@
+---
+title: 'Coursera_Peer-graded Assignment: Prediction Assignment Writeup'
+author: "Sanoop"
+date: "13/05/2020"
+output: html_document
+---
+
+#Overview
+The goal of this project is to predict the manner in which they did the exercise.
+
+#Running the Libraries
+```{r}
+
+library(caret)
+library(rpart)
+library(rpart.plot)
+library(rattle)
+library(randomForest)
+```
+
+#Reading the datasets
+```{r}
+training <- read.csv("C:/Users/sanoo/OneDrive/Desktop/Coursera/pml-training.csv")
+testing <- read.csv("C:/Users/sanoo/OneDrive/Desktop/Coursera/pml-testing.csv")
+```
+
+#Data processing
+```{r}
+library(caret)
+inTrain  <- createDataPartition(training$classe, p=0.7, list=FALSE)
+TrainSet <- training[inTrain, ]
+TestSet  <- training[-inTrain, ]
+dim(TrainSet)
+dim(TestSet)
+```
+
+# remove the variables with Nearly zero Variance
+```{r}
+n0var <- nearZeroVar(TrainSet)
+TrainSet <- TrainSet[, -n0var]
+TestSet  <- TestSet[, -n0var]
+dim(TrainSet)
+dim(TestSet)
+```
+
+# remove variables that are mostly NA
+```{r}
+AllNA <- sapply(TrainSet, function(x) mean(is.na(x))) > 0.95
+TrainSet <- TrainSet[, AllNA==FALSE]
+TestSet <- TestSet[, AllNA==FALSE]
+dim(TrainSet)
+dim(TestSet)
+```
+
+# remove identification only variables (columns 1 to 5)
+```{r}
+TrainSet <- TrainSet[, -(1:5)]
+TestSet  <- TestSet[, -(1:5)]
+dim(TrainSet)
+dim(TestSet)
+```
+
+#checking correlation among variables
+```{r}
+library(corrplot)
+M <- cor(TrainSet[, -54])
+corrplot(M, method="circle")
+```
+
+#Random forest method
+# model fit
+```{r}
+set.seed(3408)
+controlRF <- trainControl(method="cv", number=3, verboseIter=FALSE)
+modFitRandForest <- train(classe ~ ., data=TrainSet, method="rf", trControl=controlRF)
+modFitRandForest$finalModel
+```
+
+# prediction on Test dataset
+```{r}
+predictRandForest <- predict(modFitRandForest, newdata=TestSet)
+confMatRandForest <- confusionMatrix(predictRandForest, TestSet$classe)
+confMatRandForest
+```
+
+# plot matrix results
+```{r}
+plot(confMatRandForest$table, col = confMatRandForest$byClass, 
+main = paste("Random Forest - Accuracy =", round(confMatRandForest$overall['Accuracy'], 4)))
+```
+
+#Applying the selected Model to the Test Data (Random Forest is selected because of higher accuracy)
+```{r}
+predictTEST <- predict(modFitRandForest, newdata=testing)
+predictTEST
+```
+
+
+
+
+
+
+
+
+
+
